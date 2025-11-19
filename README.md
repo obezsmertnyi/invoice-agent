@@ -1,6 +1,55 @@
-# 🧾 Invoice Processing Service
+# 🧾 Invoice Processing Agent
 
-Modern AI-powered invoice extraction using ExtractThinker with multi-model support.
+A powerful AI-powered invoice extraction and analytics service built with ExtractThinker, CrewAI, and FastAPI, providing intelligent document processing, fraud detection, and natural language analytics capabilities.
+
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+## 📑 Table of Contents
+
+- [Features](#-features)
+- [Quick Start](#-quick-start-local-development)
+- [Supported Models](#-supported-models-october-2025)
+- [API Endpoints](#-api-endpoints)
+- [Architecture](#-architecture)
+- [Docker Support](#-docker-support)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+## 📚 Full Documentation
+
+For comprehensive documentation, see the [docs/](docs/) directory:
+
+- **[📖 Documentation Index](docs/README.md)** - Complete documentation overview
+- **[🏗️ Architecture](docs/architecture/HLD-system-overview.md)** - System design and architecture
+- **[📋 ADR](docs/adr/)** - Architecture Decision Records
+- **[🔌 API Reference](docs/api/)** - Detailed API documentation (coming soon)
+- **[🚀 Deployment Guide](docs/deployment/)** - Production deployment (coming soon)
+
+## ✨ Features
+
+### 🎯 Dual Processing Modes
+- **⚡ Fast Extraction**: Extract Thinker for high-speed, accurate data extraction (~5-7 sec/invoice)
+- **🤖 Deep Analysis**: CrewAI multi-agent system for validation, fraud detection, and comprehensive reporting (~45-55 sec/invoice)
+
+### 📊 Advanced Analytics
+- **💾 Database Storage**: Automatic PostgreSQL storage with duplicate detection
+- **📈 Aggregate Statistics**: Vendor analytics, risk distribution, and financial summaries
+- **🗣️ Natural Language Queries**: Ask questions in Ukrainian/English, get AI-powered SQL answers
+- **🔍 Risk Analysis**: Automated fraud detection and anomaly identification
+
+### 🌐 Multi-Model Support
+- **OpenAI**: GPT-5, GPT-4.1, GPT-4o series (9+ models)
+- **Anthropic**: Claude Sonnet 4.5, Claude Haiku 4.5, Claude Opus 4.1
+- **Ollama**: Llama 3.3, Qwen 2.5, Mistral (local/free)
+- **Cohere**: Command-R-Plus for multilingual support
+
+### 🔐 Enterprise Features
+- **📦 Batch Processing**: Process multiple invoices simultaneously
+- **🔄 Duplicate Detection**: Automatic deduplication based on invoice number and vendor
+- **📋 Document Classification**: Auto-detect invoice types (standard, credit note, receipt)
+- **🎯 Flexible Configuration**: Environment-based model selection and API key management
 
 ## 🚀 Quick Start (Local Development)
 
@@ -488,79 +537,176 @@ curl -s "http://localhost:8000/" | jq
 
 ## 🏗️ Architecture
 
+For detailed system architecture, see:
+- **[📐 System Architecture](docs/architecture/HLD-system-overview.md)** - Complete system design with diagrams
+- **[📋 Architecture Decisions](docs/adr/)** - ADR documents explaining key decisions
+  - [Dual Processing Architecture](docs/adr/ADR-001-dual-processing-architecture.md)
+  - [Multi-Model LLM Strategy](docs/adr/ADR-002-multi-model-llm-strategy.md)
+  - [PostgreSQL Database Choice](docs/adr/ADR-003-postgresql-database-choice.md)
+  - [CrewAI Multi-Agent System](docs/adr/ADR-004-crewai-multi-agent-system.md)
+  - [Natural Language Analytics](docs/adr/ADR-005-natural-language-analytics.md)
+
+### Quick Overview
+
 ```
-invoice_service.py       # Main FastAPI application
-├── ExtractorManager     # Multi-model LLM management
-├── InvoiceContract      # Pydantic data contract for standard invoices
-├── CreditNoteContract   # Contract for credit notes
-├── ReceiptContract      # Contract for simple receipts
-└── API Endpoints        # REST API with async support
+FastAPI Application
+├── Extract Thinker (Fast Mode) → ~5-7 sec
+├── CrewAI Multi-Agent (Deep Mode) → ~45-55 sec
+├── Analytics Agent (NL Query) → ~2-3 sec
+└── PostgreSQL Database
 ```
+
+## 💾 Database
+
+PostgreSQL 16 with JSONB support for flexible invoice storage.
+
+**Key Features:**
+- ACID compliance for financial data
+- Duplicate prevention via unique constraints
+- Full-text search with indexes
+- Risk tracking and audit trail
+
+**Full Schema:** See [Database Design](docs/architecture/HLD-system-overview.md#database-layer)
 
 ## 🔧 Configuration
 
-All configuration is done via `.env` file:
+Configuration via `.env` file:
 
 ```bash
-# Model Selection (October 2025 Latest - from official pricing)
-DEFAULT_MODEL=gpt-5-mini  # Highlighted in OpenAI pricing, best balance
-# Alternatives: gpt-5 (flagship), gpt-4o-mini (cheapest), claude-sonnet-4-5-20250929
+# API Keys
+OPENAI_API_KEY=sk-proj-...
+ANTHROPIC_API_KEY=sk-ant-...
 
-# API Settings
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/invoices
+
+# Settings
+DEFAULT_MODEL=gpt-4.1-nano
 API_PORT=8000
-
-# Processing Limits
-MAX_FILE_SIZE_MB=10
-PROCESSING_TIMEOUT_SECONDS=60
 ```
 
-## 📈 Model Selection Logic
+**Full Configuration Guide:** See [docs/](docs/)
 
-The system automatically selects the optimal model based on:
-- **Privacy Critical**: Uses Ollama llama3.3 (local, free)
-- **Reasoning Required**: Uses o3 (OpenAI reasoning)
-- **Coding Required**: Uses gpt-5 (flagship)
-- **Highest Accuracy**: Uses gpt-5 (flagship)
-- **Budget Option**: Uses gpt-5-nano or gpt-4o-mini
-- **Long Documents**: Uses Claude Sonnet 4.5 (200K-1M context)
-- **Speed Critical**: Uses Claude Haiku 4.5 (lightning-fast)
-- **Cost Sensitive**: Uses gpt-4o-mini (best value)
-- **Multilingual**: Uses Cohere command-r-plus
-- **Default**: Claude Sonnet 4.5 (newest flagship)
+## 🐳 Docker Support
+
+### Quick Start with Docker Compose
+
+```bash
+# Start all services (app + PostgreSQL)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f invoice-agent
+
+# Stop services
+docker-compose down
+```
+
+### Standalone Docker
+
+```bash
+docker build -t invoice-agent:latest .
+docker run -d -p 8000:8000 \
+  -e OPENAI_API_KEY=sk-proj-... \
+  invoice-agent:latest
+```
+
+**Full Docker Documentation:** See [docs/architecture/HLD-system-overview.md#deployment-architecture](docs/architecture/HLD-system-overview.md#deployment-architecture)
+
+## 📁 Project Structure
+
+```
+invoice-agent/
+├── invoice_service.py      # Main FastAPI application
+├── database.py             # PostgreSQL integration
+├── analytics_agent.py      # Natural language analytics
+├── requirements.txt        # Python dependencies
+├── .env                    # Environment variables
+├── run.sh                  # Quick start script
+├── docker-compose.yml      # Docker Compose
+├── README.md               # This file
+│
+├── docs/                   # 📚 Full documentation
+│   ├── README.md           # Documentation index
+│   ├── adr/                # Architecture decisions
+│   └── architecture/       # System design
+│
+├── config/                 # CrewAI configuration
+│   ├── agents.yaml
+│   └── tasks.yaml
+│
+└── tests/                  # Test suite
+    ├── test_extraction.py
+    ├── test_analytics.py
+    └── test_database.py
+```
 
 ## 🐛 Troubleshooting
 
-### ModuleNotFoundError
-```bash
-# Ensure virtual environment is activated
-source venv/bin/activate
-./venv/bin/pip install -r requirements.txt
-```
+**Common Issues:**
+- **ModuleNotFoundError**: Run `pip install -r requirements.txt`
+- **API Key Errors**: Check `.env` file format
+- **Ollama Connection**: Install Ollama locally
 
-### API Key Errors
-- Check `.env` file has valid API keys
-- Ensure no spaces around `=` in `.env`
-- Test API key with simple OpenAI/Anthropic request
-
-### Ollama Connection Failed
-```bash
-# Install and start Ollama locally
-curl https://ollama.ai/install.sh | sh
-ollama serve
-ollama pull llama3
-```
-
-## 📝 Next Steps
-
-1. ✅ Install dependencies
-2. ✅ Configure API keys in `.env`
-3. ⏳ Test with sample invoice
-4. ⏳ Deploy to production (docker-compose in parent directory)
-5. ⏳ Set up monitoring and alerting
+**Full Troubleshooting Guide:** See [docs/](docs/)
 
 ## 🔗 Related Documentation
 
-- [ExtractThinker Docs](https://github.com/enoch3712/ExtractThinker)
-- [FastAPI Docs](https://fastapi.tiangolo.com/)
-- [OpenAI API](https://platform.openai.com/docs)
-- [Anthropic API](https://docs.anthropic.com/)
+- [ExtractThinker](https://github.com/enoch3712/ExtractThinker) - Document extraction framework
+- [CrewAI](https://docs.crewai.com/) - Multi-agent AI framework
+- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
+- [OpenAI API](https://platform.openai.com/docs) - GPT models documentation
+- [Anthropic API](https://docs.anthropic.com/) - Claude models documentation
+- [Ollama](https://ollama.ai/) - Local LLM runtime
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these guidelines:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Setup
+
+```bash
+# Clone repository
+git clone https://github.com/obezsmertnyi/invoice-agent.git
+cd invoice-agent
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run tests
+pytest tests/
+
+# Start development server
+./run.sh
+```
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **ExtractThinker** - For the powerful document extraction framework
+- **CrewAI** - For the multi-agent AI orchestration
+- **FastAPI** - For the excellent web framework
+- **OpenAI & Anthropic** - For state-of-the-art LLM APIs
+
+## 📧 Contact
+
+For questions, issues, or suggestions:
+
+- **GitHub Issues**: [Create an issue](https://github.com/obezsmertnyi/invoice-agent/issues)
+
+---
+
+**Built with ❤️ for intelligent invoice processing**
